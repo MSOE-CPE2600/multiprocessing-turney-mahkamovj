@@ -16,7 +16,7 @@ The frames can then be stitched into a video using fmpeg -i
 mandel%d.jpg mandel.mpg , allowing us to examine how concurrency affects runtime.
 
 ![Runtime Graph](images/CPE2600 lab 11 runtime.png)
-
+![alt text](<images/CPE2600 lab 11 runtime.png>)
 
 ---
 
