@@ -1,5 +1,5 @@
 /* File: mandel_movie.c
- * CPE2600 Multiprocessing Lab 11
+ * CPE2600 - 111: Multiprocessing Lab 11
  * Name: Jaffar Mahkamov
  * Date: 11/19/25
  * Create a Mandelbrot movie using multiple processes
@@ -13,12 +13,14 @@
 #include <time.h>      
 #include <math.h>   
 #include <sys/time.h>   
+#include <string.h>
 
 int main(int argc, char *argv[])
 {
     int opt;
     int max_procs  = 1;   
     int num_frames = 50;   
+    int num_threads = 1;
 
     
     double s_start = 0.5;     
@@ -37,7 +39,8 @@ int main(int argc, char *argv[])
     // Parse command line options
     // -p <num_processes>
     // -n <num_frames>
-    while ((opt = getopt(argc, argv, "p:n:")) != -1) {
+    // -t <num_threads>
+    while ((opt = getopt(argc, argv, "p:n:t:")) != -1) {
         switch (opt) {
         case 'p':
             max_procs = atoi(optarg);
@@ -45,8 +48,11 @@ int main(int argc, char *argv[])
         case 'n':
             num_frames = atoi(optarg);
             break;
+        case 't':
+            num_threads = atoi(optarg);
+            break;    
         default:
-            fprintf(stderr, "Usage: %s [-p num_processes] [-n num_frames]\n", argv[0]);
+            fprintf(stderr, "Usage: %s [-p num_processes] [-n num_frames] [-t num_threads]\n", argv[0]);
             exit(EXIT_FAILURE);
         }
     }
@@ -57,6 +63,10 @@ int main(int argc, char *argv[])
     }
     if (num_frames < 1) {
         fprintf(stderr, "num_frames must be >= 1\n");
+        exit(EXIT_FAILURE);
+    }
+    if (num_threads < 1) {
+        fprintf(stderr, "num_threads must be >= 1\n");
         exit(EXIT_FAILURE);
     }
 
@@ -70,8 +80,8 @@ int main(int argc, char *argv[])
     double ycenter =  0.131825904;
 
 
-    printf("mandelmovie: random center (x=%lf, y=%lf)\n", xcenter, ycenter);
-    printf("             frames=%d, max_procs=%d\n", num_frames, max_procs);
+    printf("mandelmovie: center (x=%lf, y=%lf)\n", xcenter, ycenter);
+    printf("             frames=%d, max_procs=%d, num_threads=%d\n", num_frames, max_procs, num_threads);
 
     int frame = 0;
     int active_children = 0;
@@ -95,7 +105,7 @@ int main(int argc, char *argv[])
 
             //build strings for mandel arguments
             char x_str[64], y_str[64], s_str[64];
-            char w_str[16], h_str[16], m_str[16];
+            char w_str[16], h_str[16], m_str[16], t_str[16];
             char outfile[64];
 
             snprintf(x_str, sizeof(x_str), "%lf", xcenter);
@@ -104,6 +114,7 @@ int main(int argc, char *argv[])
             snprintf(w_str, sizeof(w_str), "%d", width);
             snprintf(h_str, sizeof(h_str), "%d", height);
             snprintf(m_str, sizeof(m_str), "%d", max_iter);
+            snprintf(t_str, sizeof(t_str), "%d", num_threads);
             snprintf(outfile, sizeof(outfile), "mandel%d.jpg", this_frame);
 
             pid_t pid = fork();
@@ -122,20 +133,21 @@ int main(int argc, char *argv[])
                        "-H", h_str,
                        "-m", m_str,
                        "-o", outfile,
+                        "-t", t_str,
                        (char *)NULL);
 
                 // error catch
                 perror("execlp");
                 _exit(EXIT_FAILURE);
             } else {
-                // Parent: increment active children count
+                //parent:increment active children count
                 active_children++;
             }
 
-        } else {
-            // Wait for one child to finish.
+        } else{
+            //Wait for one child to finish.
             int status;
-            pid_t done = waitpid(-1, &status, 0);
+            pid_t done =waitpid(-1, &status, 0);
             if (done > 0) {
                 active_children--;
                 total_frames_generated++;
